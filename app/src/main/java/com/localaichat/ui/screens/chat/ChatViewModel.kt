@@ -39,8 +39,7 @@ class ChatViewModel(
         container.observeSettingsUseCase(),
         modelManagerState,
         transientConversationState,
-        container.observeChatReadinessUseCase(),
-    ) { messages, prompt, settings, managerState, transientState, readiness ->
+    ) { messages, prompt, settings, managerState, transientState ->
         val effectiveState = effectiveConversationState(
             managerState = managerState,
             transientState = transientState,
@@ -51,12 +50,15 @@ class ChatViewModel(
             selectedModelName = managerState.selectedModelName.orEmpty(),
             activeModelName = managerState.activeModelName.orEmpty(),
             selectedModelStatus = managerState.selectedModelStatus,
-            readiness = readiness,
             conversationState = effectiveState,
-            canSend = readiness is ChatReadiness.Ready &&
-                effectiveState !is ChatConversationState.Generating,
             maxTokens = settings.generationConfig.maxTokens,
             temperature = settings.generationConfig.temperature,
+        )
+    }.combine(container.observeChatReadinessUseCase()) { baseState, readiness ->
+        baseState.copy(
+            readiness = readiness,
+            canSend = readiness is ChatReadiness.Ready &&
+                baseState.conversationState !is ChatConversationState.Generating,
         )
     }.stateIn(
         scope = viewModelScope,

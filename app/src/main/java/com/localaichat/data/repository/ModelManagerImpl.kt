@@ -131,19 +131,21 @@ class ModelManagerImpl(
         selectedModel: ModelOption?,
         selectedStatus: ModelStatus,
     ): String {
+        val model = selectedModel ?: return "Select a local model to start chatting."
+
         if (selectedModel?.compatibility is ModelCompatibility.Incompatible) {
             return (selectedModel.compatibility as ModelCompatibility.Incompatible).reason
         }
 
         return when (selectedStatus) {
-            ModelStatus.NotLoaded -> if (selectedModel?.isInstalled == false) {
-                "${selectedModel.name} is not installed on this device."
+            ModelStatus.NotLoaded -> if (!model.isInstalled) {
+                "${model.name} is not installed on this device."
             } else {
-                "${selectedModel.name} is selected but not loaded."
+                "${model.name} is selected but not loaded."
             }
-            is ModelStatus.Loading -> "${selectedModel?.name} is loading (${selectedStatus.progressPercent}%)..."
-            is ModelStatus.Initializing -> "${selectedModel?.name} is initializing (${selectedStatus.progressPercent}%)..."
-            ModelStatus.Ready -> "${selectedModel?.name} is ready."
+            is ModelStatus.Loading -> "${model.name} is loading (${selectedStatus.progressPercent}%)..."
+            is ModelStatus.Initializing -> "${model.name} is initializing (${selectedStatus.progressPercent}%)..."
+            ModelStatus.Ready -> "${model.name} is ready."
             is ModelStatus.Failed -> selectedStatus.reason
         }
     }
