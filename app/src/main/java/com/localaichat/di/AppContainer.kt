@@ -7,7 +7,6 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
 import com.localaichat.data.local.LocalAiChatDatabase
 import com.localaichat.data.repository.ChatRepositoryImpl
-import com.localaichat.data.repository.FakeLocalLlmEngine
 import com.localaichat.data.repository.LocalModelRegistryImpl
 import com.localaichat.data.repository.ModelManagerImpl
 import com.localaichat.data.repository.PlaceholderLocalModelInstallationWorkflow
@@ -21,6 +20,7 @@ import com.localaichat.data.repository.AdapterLlmEngine
 import com.localaichat.data.repository.BackendManagerImpl
 import com.localaichat.data.repository.DynamicLlmEngine
 import com.localaichat.data.repository.ModelCompatibilityCheckerImpl
+import com.localaichat.data.repository.TermuxLlmEngine
 import com.localaichat.domain.repository.BackendManager
 import com.localaichat.domain.repository.ChatRepository
 import com.localaichat.domain.repository.LlmEngine
@@ -72,7 +72,7 @@ class AppContainer(
         loadingWorkflow = localModelLoadingWorkflow,
     )
 
-    private val fakeLlmEngine: LlmEngine = FakeLocalLlmEngine()
+    private val fakeLlmEngine: LlmEngine = TermuxLlmEngine()
     private val mediaPipeLlmEngine: LlmEngine = AdapterLlmEngine(
         adapter = MediaPipeInferenceAdapter(androidBackendContext)
     )
