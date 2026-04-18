@@ -1,81 +1,182 @@
 # LocalAIChat
 
-Single-activity Android app built with Kotlin and Jetpack Compose.
+LocalAIChat is an Android application built with Kotlin and Jetpack Compose that explores a clean, extensible architecture for on-device AI chat.
 
-## Architecture
+The project is structured to support multiple local inference backends while keeping UI, chat flow, prompt rendering, model lifecycle, and backend integration concerns clearly separated.
 
-- MVVM for screen state and actions
-- Repository pattern for data access
-- Room for local chat history persistence
-- DataStore for generation settings and selected model
-- Type-safe Compose Navigation for the Chat, Models, and Settings screens
-- Swap-ready `LlmEngine` interface for future on-device inference backends
-- `ModelManager` layer that owns model readiness, initialization, failure, and active-model state
-- `LocalModelRegistry` layer for local model catalog and placeholder load/unload/select actions
-- `RealLlmEngineAdapter` boundary for a future Android on-device inference runtime
-- `BackendCapabilities` types for backend capability negotiation
-- Edge-to-edge activity setup with inset-aware Compose screens
-- No XML layouts; only `AndroidManifest.xml`
-- No DI framework; dependencies are wired in a plain `AppContainer`
+## Features
 
-## Project map
+- Modern Android app built with Kotlin and Jetpack Compose
+- MVVM architecture with clean layering
+- Single-activity Compose app with type-safe navigation
+- Chat interface with:
+  - streaming response UI
+  - stop generation action
+  - explicit chat readiness states
+  - surfaced failure and cancellation states
+- Local model management with:
+  - install, load, select, and unload workflow
+  - runtime lifecycle tracking
+  - progress reporting
+  - selected-model vs active-loaded-model separation
+- Backend selection flow with:
+  - persisted backend choice
+  - availability reporting
+  - compatibility checks
+- Prompt templating layer using rendered prompts
+- Room persistence for local chat history
+- DataStore-backed app settings and model selection state
+- Placeholder support for future real local inference backends
+- Fake backend available as the safe default runtime
 
-- `app/src/main/java/com/localaichat/ui`: Compose app shell, navigation, screens, and theme
-- `app/src/main/java/com/localaichat/domain`: app models, repository contracts, and use cases
-- `app/src/main/java/com/localaichat/data`: Room entities/DAO plus repository implementations
-- `app/src/main/java/com/localaichat/data/backend/real`: placeholder package for future real on-device backend sessions
-- `app/src/main/java/com/localaichat/di/AppContainer.kt`: simple manual dependency wiring
-- `docs/real-inference-adapter.md`: future real-backend integration notes
-- `docs/real-backend-package.md`: concrete package layout for future backend integrations
+## Project Goals
 
-## Local model registry
+This project focuses on building a robust Android foundation for local AI inference by solving the surrounding product and engineering concerns first:
 
-- `LocalModelRegistry` provides a UI-facing local model catalog.
-- `LocalModel` is a terminal-friendly data class that carries display name, path, size, install state, and selection flags.
-- `LocalModelState` tracks `NotInstalled`, `Downloading`, `Installing`, `Installed`, `Loading`, `Ready`, and `Failed`.
-- The default implementation is `LocalModelRegistryImpl`, which maps existing `ModelManager` state into a simple registry model.
-- `Install`, `Load`, `Unload`, `Select`, and cancellation are placeholder actions only. No real backend is connected yet.
+- backend selection
+- model compatibility
+- model lifecycle
+- chat readiness
+- progress tracking
+- prompt rendering
+- future backend integration
 
-## Lifecycle abstractions
+Rather than coupling the app directly to one inference engine, LocalAIChat is designed so multiple backend paths can be added cleanly over time.
 
-- `LocalModelInstallationWorkflow` is the install/download abstraction.
-- `LocalModelLoadingWorkflow` is the load-to-memory abstraction.
-- Both currently use placeholder implementations that emit progress and cancellation-friendly state updates.
-- These abstractions are injected through `AppContainer`, so a real backend can replace them later without changing the screen or registry contract.
+## Current Backend Status
 
-## Runtime model flow
+### Available
 
-1. `ModelRepository` stores model catalog metadata and selected model id.
-2. `ModelManager` overlays runtime state on top of that metadata:
-   loading, initializing, ready, and failed.
-3. `LocalModelRegistry` drives install/load/unload/select workflows and updates readiness through the model lifecycle layers.
-4. `SendMessageUseCase` only generates when the selected model is already ready.
-5. `LlmEngine` remains the generation boundary and still defaults to `FakeLocalLlmEngine`.
+- Fake Backend
+  - default runtime
+  - useful for UI, state, and architecture development
 
-## Model metadata
+### Placeholder / Planned
 
-Each `ModelOption` now carries:
+- MediaPipe backend
+  - architecture path prepared
+  - execution stubs and integration notes added
+  - real dependency integration not yet completed
 
-- `name`
-- `sizeBytes`
-- `localPath`
-- `isInstalled`
-- `status`
+- Additional backend paths
+  - the project structure is intentionally flexible enough to support future engines such as ONNX Runtime, llama.cpp, or similar runtimes later
 
-This is enough to plug in a real backend later without rewriting the UI contracts.
+## Architecture Overview
 
-## LLM integration path
+The app separates responsibilities into distinct layers:
 
-- Replace `FakeLocalLlmEngine` with a real engine implementation
-- Keep `LlmEngine` stable so UI and repositories do not depend on a specific backend
-- Use `ModelManager` to map backend-specific loading/init/error callbacks into app state
-- Use `RealLlmEngineAdapter` as the low-level backend boundary for model init, teardown, streaming, cancellation, and error propagation
-- Use `BackendCapabilities` and `BackendCapabilityNegotiator` to describe runtime features such as streaming, cancellation, context limits, and supported model formats
-- Use the `data/backend/real` package for backend-specific sessions, model validation, initialization, prompt execution, cancellation, and teardown
-- Existing chat flow already supports streaming chunks, cancellation cleanup, and surfaced failure state
-- Chat generation is gated on a selected local model being both selected and ready
-- The chat UI shows both the selected model and the currently active loaded model
-- The chat screen uses explicit conversation states: idle, no model selected, model not ready, generating, cancelled, and failed
+- UI Layer
+  - Compose screens
+  - screen state rendering
+  - user interaction handling
+
+- Presentation Layer
+  - ViewModels
+  - state coordination
+  - readiness and lifecycle-driven UI decisions
+
+- Domain Layer
+  - use cases
+  - backend and model abstractions
+  - prompt rendering contracts
+  - compatibility and readiness logic
+
+- Data / Integration Layer
+  - repositories
+  - backend managers
+  - model registry and lifecycle coordinators
+  - placeholder backend implementations
+
+## Core Concepts
+
+### Chat Readiness
+
+Chat generation is only allowed when all required conditions are satisfied, including:
+
+- a backend is selected
+- the backend is available
+- a compatible model is selected
+- the selected model is loaded and ready
+- generation is not already in progress
+
+This keeps the UI honest about when inference can actually begin.
+
+### Backend Selection
+
+Backends are modeled explicitly rather than hidden behind a single hardcoded engine. The app tracks:
+
+- selected backend
+- backend availability
+- capability information
+- model compatibility with the active backend
+
+This makes it possible to add real inference runtimes later without rewriting the UI flow.
+
+### Model Lifecycle
+
+The model lifecycle is treated as a first-class concern. The app distinguishes between metadata, selection state, install state, and runtime readiness.
+
+Relevant states include:
+
+- not installed
+- downloading
+- installing
+- installed
+- loading
+- ready
+- failed
+
+### Prompt Rendering
+
+Prompt generation is routed through a prompt-formatting layer instead of embedding raw string assembly directly in the chat UI or generation use case.
+
+Current prompt formatter implementations include:
+
+- Plain prompt formatter
+- Gemma prompt formatter
+- Llama 3 prompt formatter
+
+This creates a clean path for model-specific prompt formatting when real local runtimes are introduced.
+
+## Technical Highlights
+
+- `LlmEngine` is the generation boundary used by the chat flow
+- `DynamicLlmEngine` can route generation based on the selected backend
+- `FakeLocalLlmEngine` remains the safe default implementation
+- `ModelManager` owns runtime loading, initialization, readiness, and failure state
+- `LocalModelRegistry` provides a UI-facing model catalog and workflow surface
+- `BackendManager` exposes selectable backends, availability, and runtime metadata
+- `ModelCompatibilityChecker` gates models against backend requirements
+- `AppContainer` wires dependencies without a DI framework
+
+## Project Map
+
+- `app/src/main/java/com/localaichat/ui`
+  Compose app shell, screens, navigation, and theme
+- `app/src/main/java/com/localaichat/domain`
+  domain models, repository contracts, and use cases
+- `app/src/main/java/com/localaichat/data`
+  repository implementations, Room storage, prompt formatters, backend selection, and model lifecycle wiring
+- `app/src/main/java/com/localaichat/data/backend/real`
+  shared abstractions for future real backend integrations
+- `app/src/main/java/com/localaichat/data/backend/mediapipe`
+  MediaPipe-specific placeholders and execution stubs
+- `app/src/main/java/com/localaichat/di/AppContainer.kt`
+  manual dependency wiring
+- `docs/`
+  backend architecture notes, integration plans, prompt templating docs, and MediaPipe implementation checklists
+
+## Backend Integration Notes
+
+The repository already contains planning and placeholder architecture for future real on-device inference support, including:
+
+- backend adapter boundaries
+- capability negotiation types
+- prompt execution abstractions
+- model initialization and teardown hooks
+- MediaPipe integration plans and checklist documents
+
+This means the project is not just a demo UI. It is an architectural foundation intended to make a real backend integration incremental instead of invasive.
 
 ## Build
 
@@ -86,3 +187,9 @@ sdk.dir=/absolute/path/to/Android/Sdk
 ```
 
 Place that in `local.properties`, or export `ANDROID_HOME`.
+
+Then build with Gradle:
+
+```sh
+./gradlew assembleDebug
+```
