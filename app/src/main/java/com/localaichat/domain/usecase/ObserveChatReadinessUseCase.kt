@@ -2,7 +2,6 @@ package com.localaichat.domain.usecase
 
 import com.localaichat.domain.model.BackendStatus
 import com.localaichat.domain.model.ChatReadiness
-import com.localaichat.domain.model.ModelCompatibility
 import com.localaichat.domain.model.ModelStatus
 import com.localaichat.domain.repository.BackendManager
 import com.localaichat.domain.repository.ModelManager
@@ -43,14 +42,6 @@ class ObserveChatReadinessUseCase(
             )
         }
 
-        // 3. Check Backend-Model Compatibility
-        val selectedModel = modelManager.observeAvailableModels()
-            .let { /* We can't collect inside combine flow, so we use the state info */ }
-        
-        // Actually, ModelManagerState has selectedModelAvailabilityMessage which already 
-        // includes compatibility checks in our ModelManagerImpl.
-        
-        // Let's rely on modelManager's internal rules but expose them clearly here.
         val modelStatus = modelState.selectedModelStatus
 
         if (modelStatus is ModelStatus.Failed) {
@@ -65,11 +56,14 @@ class ObserveChatReadinessUseCase(
                 message = "${modelState.selectedModelName} is selected but not loaded.",
                 isRecoverable = true
             )
-            ModelStatus.Loading, ModelStatus.Initializing -> ChatReadiness.Loading(
-                message = "Preparing ${modelState.selectedModelName}..."
+            is ModelStatus.Loading -> ChatReadiness.Loading(
+                message = "Loading ${modelState.selectedModelName} (${modelStatus.progressPercent}%)..."
+            )
+            is ModelStatus.Initializing -> ChatReadiness.Loading(
+                message = "Preparing ${modelState.selectedModelName} (${modelStatus.progressPercent}%)..."
             )
             ModelStatus.Ready -> ChatReadiness.Ready
-            else -> ChatReadiness.Blocked("Inconsistent chat state.")
+            is ModelStatus.Failed -> ChatReadiness.Blocked(modelStatus.reason)
         }
     }
 }

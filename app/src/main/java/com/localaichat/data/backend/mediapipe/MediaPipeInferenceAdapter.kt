@@ -1,14 +1,16 @@
 package com.localaichat.data.backend.mediapipe
 
 import com.localaichat.domain.model.BackendCapabilities
-import com.localaichat.domain.model.LocalModelLoadEvent
 import com.localaichat.domain.model.InferenceEvent
-import com.localaichat.domain.model.InferenceRequest
 import com.localaichat.domain.model.InferenceModelHandle
+import com.localaichat.domain.model.InferenceRequest
+import com.localaichat.domain.model.LocalModelLoadEvent
+import com.localaichat.domain.model.ModelFormat
 import com.localaichat.domain.repository.InferenceAdapter
 import com.localaichat.data.backend.real.AndroidBackendContext
 import com.localaichat.data.backend.real.RealBackendSession
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
@@ -30,11 +32,13 @@ class MediaPipeInferenceAdapter(
     private var activeModelId: String? = null
 
     override suspend fun getBackendCapabilities(): BackendCapabilities {
-        // TODO: Use MediaPipe internal checks to verify GPU/NNAPI availability.
         return BackendCapabilities(
-            isGpuSupported = true,
-            supportedModelFormats = listOf("bin"),
-            maxContextWindow = 2048,
+            backendId = "mediapipe",
+            displayName = "MediaPipe LLM",
+            supportsStreaming = true,
+            supportsCancellation = true,
+            maxContextSize = 2048,
+            supportedModelFormats = setOf(ModelFormat.MediapipeBundle),
         )
     }
 
@@ -89,9 +93,7 @@ class MediaPipeInferenceAdapter(
             }
         }
         
-        // Map InferenceRequest to RealBackend types if needed, 
-        // but here we keep them compatible.
-        return session.executePrompt(request)
+        return session.executeInference(request)
     }
 
     override suspend fun cancelInference(requestId: String) {

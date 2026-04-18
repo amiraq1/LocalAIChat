@@ -121,6 +121,7 @@ fun LocalAIChatApp() {
                     uiState = uiState,
                     onMaxTokensChanged = viewModel::updateMaxTokens,
                     onTemperatureChanged = viewModel::updateTemperature,
+                    onBackendSelected = viewModel::selectBackend,
                 )
             }
         }

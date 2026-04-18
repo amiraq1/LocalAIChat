@@ -23,7 +23,6 @@ class Llama3PromptFormatter : PromptFormatter {
                 val role = when (message.role) {
                     ChatRole.USER -> "user"
                     ChatRole.ASSISTANT -> "assistant"
-                    ChatRole.SYSTEM -> "system"
                 }
                 append("<|start_header_id|>$role<|end_header_id|>\n\n")
                 append(message.content)

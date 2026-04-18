@@ -21,7 +21,6 @@ class GemmaPromptFormatter : PromptFormatter {
                 val role = when (message.role) {
                     ChatRole.USER -> "user"
                     ChatRole.ASSISTANT -> "model"
-                    ChatRole.SYSTEM -> "user"
                 }
                 append("<start_of_turn>$role\n")
                 append(message.content)

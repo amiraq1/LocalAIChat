@@ -236,8 +236,8 @@ fun ChatScreen(
 
 private fun com.localaichat.domain.model.ModelStatus.asLabel(): String = when (this) {
     com.localaichat.domain.model.ModelStatus.NotLoaded -> "Not loaded"
-    com.localaichat.domain.model.ModelStatus.Loading -> "Loading"
-    com.localaichat.domain.model.ModelStatus.Initializing -> "Initializing"
+    is com.localaichat.domain.model.ModelStatus.Loading -> "Loading"
+    is com.localaichat.domain.model.ModelStatus.Initializing -> "Initializing"
     com.localaichat.domain.model.ModelStatus.Ready -> "Ready"
     is com.localaichat.domain.model.ModelStatus.Failed -> "Failed"
 }

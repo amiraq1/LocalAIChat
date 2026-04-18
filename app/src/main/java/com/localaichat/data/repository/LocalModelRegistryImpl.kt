@@ -189,7 +189,14 @@ private fun ModelOption.asLocalModel(
     state = lifecycleOverride ?: when {
         !(installedOverride ?: isInstalled) -> LocalModelState.NotInstalled
         status == ModelStatus.NotLoaded -> LocalModelState.Installed
-        status == ModelStatus.Loading || status == ModelStatus.Initializing -> LocalModelState.Loading(100)
+        status is ModelStatus.Loading -> LocalModelState.Processing(
+            stage = LocalModelOperationStage.LOADING_INTO_MEMORY,
+            progressPercent = status.progressPercent,
+        )
+        status is ModelStatus.Initializing -> LocalModelState.Processing(
+            stage = LocalModelOperationStage.INITIALIZING,
+            progressPercent = status.progressPercent,
+        )
         status == ModelStatus.Ready -> LocalModelState.Ready
         status is ModelStatus.Failed -> LocalModelState.Failed(status.reason)
         else -> LocalModelState.Installed

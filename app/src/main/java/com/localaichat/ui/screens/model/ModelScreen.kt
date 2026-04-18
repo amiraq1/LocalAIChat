@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.localaichat.domain.model.LocalModel
+import com.localaichat.domain.model.LocalModelOperationStage
 import com.localaichat.domain.model.LocalModelState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,8 +77,8 @@ fun ModelScreen(
                 val stateLabel = model.state.asLabel()
                 val stateDetail = model.state.asDetail()
                 val progress = model.state.progressFraction()
-                val isBusyInstalling = model.state is LocalModelState.Downloading || model.state is LocalModelState.Installing
-                val isBusyLoading = model.state is LocalModelState.Loading
+                val isBusyInstalling = model.state.isInstallInProgress()
+                val isBusyLoading = model.state.isLoadInProgress()
                 val canInstall = !model.isInstalled && !isBusyInstalling && !isBusyLoading
                 val canCancelInstall = isBusyInstalling
                 val canLoad = model.isInstalled && !isBusyInstalling && !isBusyLoading && model.state !is LocalModelState.Ready
@@ -235,27 +236,37 @@ private fun Long.toReadableSize(): String = when {
 
 private fun LocalModelState.asLabel(): String = when (this) {
     LocalModelState.NotInstalled -> "Not installed"
-    is LocalModelState.Downloading -> "Downloading"
-    is LocalModelState.Installing -> "Installing"
+    is LocalModelState.Processing -> when (stage) {
+        LocalModelOperationStage.DOWNLOADING -> "Downloading"
+        LocalModelOperationStage.INSTALLING -> "Installing"
+        LocalModelOperationStage.INITIALIZING -> "Initializing"
+        LocalModelOperationStage.LOADING_INTO_MEMORY -> "Loading"
+    }
     LocalModelState.Installed -> "Installed"
-    is LocalModelState.Loading -> "Loading"
     LocalModelState.Ready -> "Ready"
     is LocalModelState.Failed -> "Action failed"
 }
 
 private fun LocalModelState.asDetail(): String = when (this) {
     LocalModelState.NotInstalled -> "This model is not available on the device yet."
-    is LocalModelState.Downloading -> "Downloading model files: ${this.progressPercent}%."
-    is LocalModelState.Installing -> "Preparing local files: ${this.progressPercent}%."
+    is LocalModelState.Processing -> when (stage) {
+        LocalModelOperationStage.DOWNLOADING -> "Downloading model files: ${this.progressPercent}%."
+        LocalModelOperationStage.INSTALLING -> "Preparing local files: ${this.progressPercent}%."
+        LocalModelOperationStage.INITIALIZING -> "Initializing backend runtime: ${this.progressPercent}%."
+        LocalModelOperationStage.LOADING_INTO_MEMORY -> "Loading model into memory: ${this.progressPercent}%."
+    }
     LocalModelState.Installed -> "Installed on device and ready to load."
-    is LocalModelState.Loading -> "Loading model into memory: ${this.progressPercent}%."
     LocalModelState.Ready -> "Loaded into memory and ready for selection."
     is LocalModelState.Failed -> this.userMessage
 }
 
 private fun LocalModelState.progressFraction(): Float? = when (this) {
-    is LocalModelState.Downloading -> this.progressPercent / 100f
-    is LocalModelState.Installing -> this.progressPercent / 100f
-    is LocalModelState.Loading -> this.progressPercent / 100f
+    is LocalModelState.Processing -> this.progressPercent / 100f
     else -> null
 }
+
+private fun LocalModelState.isInstallInProgress(): Boolean = this is LocalModelState.Processing &&
+    (stage == LocalModelOperationStage.DOWNLOADING || stage == LocalModelOperationStage.INSTALLING)
+
+private fun LocalModelState.isLoadInProgress(): Boolean = this is LocalModelState.Processing &&
+    (stage == LocalModelOperationStage.INITIALIZING || stage == LocalModelOperationStage.LOADING_INTO_MEMORY)

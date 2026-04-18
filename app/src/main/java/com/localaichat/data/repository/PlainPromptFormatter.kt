@@ -21,7 +21,6 @@ class PlainPromptFormatter : PromptFormatter {
                 val role = when (message.role) {
                     ChatRole.USER -> "User"
                     ChatRole.ASSISTANT -> "Assistant"
-                    ChatRole.SYSTEM -> "System"
                 }
                 append("$role: ")
                 append(message.content)

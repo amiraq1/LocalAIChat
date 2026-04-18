@@ -2,8 +2,8 @@ package com.localaichat.data.backend.mediapipe
 
 import com.localaichat.data.backend.real.AndroidBackendContext
 import com.localaichat.data.backend.real.RealBackendModelInitializer
+import com.localaichat.domain.model.InferenceModelHandle
 import com.localaichat.domain.model.LocalModelLoadEvent
-import com.localaichat.domain.model.RealModelHandle
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
@@ -30,4 +30,3 @@ class MediaPipeModelInitializer(
         emit(LocalModelLoadEvent.Ready)
     }
 }
-
