@@ -19,6 +19,7 @@ import com.localaichat.data.backend.real.AndroidBackendContextProvider
 import com.localaichat.data.repository.AdapterLlmEngine
 import com.localaichat.data.repository.BackendManagerImpl
 import com.localaichat.data.repository.DynamicLlmEngine
+import com.localaichat.data.repository.FakeLocalLlmEngine
 import com.localaichat.data.repository.ModelCompatibilityCheckerImpl
 import com.localaichat.data.repository.TermuxLlmEngine
 import com.localaichat.domain.repository.BackendManager
@@ -72,7 +73,13 @@ class AppContainer(
         loadingWorkflow = localModelLoadingWorkflow,
     )
 
-    private val fakeLlmEngine: LlmEngine = TermuxLlmEngine()
+    // ── Engines ───────────────────────────────────────
+    private val fakeEngine: LlmEngine = FakeLocalLlmEngine()
+
+    private val llamaCppEngine: LlmEngine = TermuxLlmEngine(
+        settingsRepository = settingsRepository,
+    )
+
     private val mediaPipeLlmEngine: LlmEngine = AdapterLlmEngine(
         adapter = MediaPipeInferenceAdapter(androidBackendContext)
     )
@@ -80,8 +87,9 @@ class AppContainer(
     val llmEngine: LlmEngine = DynamicLlmEngine(
         settingsRepository = settingsRepository,
         backendManager = backendManager,
-        fakeEngine = fakeLlmEngine,
+        fakeEngine = fakeEngine,
         mediaPipeEngine = mediaPipeLlmEngine,
+        llamaCppEngine = llamaCppEngine,
     )
 
     val observeChatMessagesUseCase = ObserveChatMessagesUseCase(chatRepository)

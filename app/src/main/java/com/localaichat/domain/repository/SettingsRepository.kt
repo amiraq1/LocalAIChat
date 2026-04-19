@@ -13,4 +13,8 @@ interface SettingsRepository {
     suspend fun getGenerationConfig(): GenerationConfig
     suspend fun updateMaxTokens(value: Int)
     suspend fun updateTemperature(value: Float)
+
+    fun observeServerUrl(): Flow<String>
+    suspend fun getServerUrl(): String
+    suspend fun updateServerUrl(url: String)
 }

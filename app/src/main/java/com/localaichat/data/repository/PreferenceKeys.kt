@@ -9,4 +9,5 @@ object PreferenceKeys {
     val Temperature = floatPreferencesKey("temperature")
     val SelectedModel = stringPreferencesKey("selected_model")
     val BackendType = stringPreferencesKey("backend_type")
+    val ServerUrl = stringPreferencesKey("server_url")
 }

@@ -16,11 +16,11 @@ class SettingsRepositoryImpl(
 ) : SettingsRepository {
     override fun observeBackendType(): Flow<BackendType> =
         dataStore.data.map { preferences ->
-            val name = preferences[PreferenceKeys.BackendType] ?: BackendType.FAKE.name
+            val name = preferences[PreferenceKeys.BackendType] ?: BackendType.LLAMA_CPP.name
             try {
                 BackendType.valueOf(name)
             } catch (_: IllegalArgumentException) {
-                BackendType.FAKE
+                BackendType.LLAMA_CPP
             }
         }
 
@@ -51,6 +51,23 @@ class SettingsRepositoryImpl(
     override suspend fun updateTemperature(value: Float) {
         dataStore.edit { preferences ->
             preferences[PreferenceKeys.Temperature] = value
+        }
+    }
+
+    companion object {
+        const val DEFAULT_SERVER_URL = "http://127.0.0.1:8080/v1/chat/completions"
+    }
+
+    override fun observeServerUrl(): Flow<String> =
+        dataStore.data.map { preferences ->
+            preferences[PreferenceKeys.ServerUrl] ?: DEFAULT_SERVER_URL
+        }
+
+    override suspend fun getServerUrl(): String = observeServerUrl().first()
+
+    override suspend fun updateServerUrl(url: String) {
+        dataStore.edit { preferences ->
+            preferences[PreferenceKeys.ServerUrl] = url
         }
     }
 }

@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.localaichat.domain.model.BackendType
 import com.localaichat.di.AppContainer
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -14,12 +15,17 @@ class SettingsViewModel(
     application: Application,
     private val container: AppContainer,
 ) : AndroidViewModel(application) {
-    val uiState = container.observeSettingsUseCase().map { state ->
+
+    val uiState = combine(
+        container.observeSettingsUseCase(),
+        container.settingsRepository.observeServerUrl(),
+    ) { state, serverUrl ->
         SettingsUiState(
             generationConfig = state.generationConfig,
             selectedBackend = state.selectedBackend,
             availableBackends = state.availableBackends,
             selectedModelCompatibility = state.selectedModelCompatibility,
+            serverUrl = serverUrl,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -42,6 +48,12 @@ class SettingsViewModel(
     fun updateTemperature(value: Float) {
         viewModelScope.launch {
             container.settingsRepository.updateTemperature(value)
+        }
+    }
+
+    fun updateServerUrl(url: String) {
+        viewModelScope.launch {
+            container.settingsRepository.updateServerUrl(url)
         }
     }
 }

@@ -22,6 +22,7 @@ class DynamicLlmEngine(
     private val backendManager: BackendManager,
     private val fakeEngine: LlmEngine,
     private val mediaPipeEngine: LlmEngine,
+    private val llamaCppEngine: LlmEngine,
 ) : LlmEngine {
 
     override fun streamReply(
@@ -40,6 +41,7 @@ class DynamicLlmEngine(
             when (status) {
                 is BackendStatus.Available -> {
                     val engine = when (type) {
+                        BackendType.LLAMA_CPP -> llamaCppEngine
                         BackendType.FAKE -> fakeEngine
                         BackendType.MEDIAPIPE -> mediaPipeEngine
                         else -> fakeEngine

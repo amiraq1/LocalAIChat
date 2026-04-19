@@ -16,16 +16,21 @@ class BackendManagerImpl(
         settingsRepository.observeBackendType().map { _ ->
             listOf(
                 BackendOption(
+                    type = BackendType.LLAMA_CPP,
+                    displayName = "llama.cpp Server",
+                    description = "Connect to a llama.cpp server (local network or Termux) via OpenAI-compatible API.",
+                    status = BackendStatus.Available,
+                ),
+                BackendOption(
                     type = BackendType.FAKE,
                     displayName = "Fake Backend",
-                    description = "Fast, non-functional placeholder for development and testing.",
+                    description = "Non-functional placeholder for development and UI testing.",
                     status = BackendStatus.Available,
                 ),
                 BackendOption(
                     type = BackendType.MEDIAPIPE,
                     displayName = "MediaPipe LLM",
                     description = "On-device inference using MediaPipe LLM Inference task.",
-                    // TODO: Change status to Available once dependencies are added.
                     status = BackendStatus.Unavailable(
                         reason = "MediaPipe is not yet integrated into the runtime.",
                         isFixable = false,
@@ -40,15 +45,6 @@ class BackendManagerImpl(
                         isFixable = false,
                     ),
                 ),
-                BackendOption(
-                    type = BackendType.LLAMA_CPP,
-                    displayName = "llama.cpp",
-                    description = "Native GGUF inference via llama.cpp JNI.",
-                    status = BackendStatus.Unavailable(
-                        reason = "llama.cpp is not yet integrated.",
-                        isFixable = false,
-                    ),
-                )
             )
         }
 
