@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit
 
 class TermuxLlmEngine(
     private val settingsRepository: SettingsRepository? = null,
-    private val fallbackUrl: String = "http://192.168.1.100:8080/v1/chat/completions",
+    private val fallbackUrl: String = SettingsRepositoryImpl.DEFAULT_SERVER_URL,
 ) : LlmEngine {
 
     private val client = OkHttpClient.Builder()

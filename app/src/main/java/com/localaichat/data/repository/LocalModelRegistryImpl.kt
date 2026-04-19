@@ -112,18 +112,21 @@ class LocalModelRegistryImpl(
         loadJobs[modelId] = scope.launch {
             try {
                 modelManager.selectModel(modelId)
+                modelManager.updateModelStatus(modelId, ModelStatus.Loading(0))
                 loadingWorkflow.load(model).collect { event ->
                     when (event) {
                         is LocalModelLoadEvent.Loading -> {
                             setLifecycle(modelId, LocalModelState.Processing(LocalModelOperationStage.LOADING_INTO_MEMORY, event.progressPercent))
+                            modelManager.updateModelStatus(modelId, ModelStatus.Loading(event.progressPercent))
                         }
 
                         is LocalModelLoadEvent.Initializing -> {
                             setLifecycle(modelId, LocalModelState.Processing(LocalModelOperationStage.INITIALIZING, event.progressPercent))
+                            modelManager.updateModelStatus(modelId, ModelStatus.Initializing(event.progressPercent))
                         }
 
                         LocalModelLoadEvent.Ready -> {
-                            modelManager.prepareSelectedModel()
+                            modelManager.updateModelStatus(modelId, ModelStatus.Ready)
                             clearLifecycle(modelId)
                         }
 

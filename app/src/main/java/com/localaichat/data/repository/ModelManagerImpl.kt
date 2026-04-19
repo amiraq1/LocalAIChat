@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.yield
 
 class ModelManagerImpl(
     private val modelRepository: ModelRepository,
@@ -81,49 +80,50 @@ class ModelManagerImpl(
 
     override suspend fun prepareSelectedModel(): ModelOption = prepareMutex.withLock {
         val selectedModel = getSelectedModel()
-
-        if (selectedModel.compatibility is ModelCompatibility.Incompatible) {
-            val reason = (selectedModel.compatibility as ModelCompatibility.Incompatible).reason
-            markModelFailed(selectedModel.id, reason)
-            error(reason)
-        }
+        ensureCompatible(selectedModel)
 
         if (selectedModel.status == ModelStatus.Ready && activeModelId.value == selectedModel.id) {
             return selectedModel
         }
 
-        setStatus(selectedModel.id, ModelStatus.Loading(0))
-        yield()
-        setStatus(selectedModel.id, ModelStatus.Loading(100))
-        yield()
-        setStatus(selectedModel.id, ModelStatus.Initializing(0))
-        yield()
-        setStatus(selectedModel.id, ModelStatus.Initializing(50))
-        yield()
-        setStatus(selectedModel.id, ModelStatus.Initializing(100))
-        yield()
-        setStatus(selectedModel.id, ModelStatus.Ready)
-        activeModelId.value = selectedModel.id
+        if (selectedModel.status == ModelStatus.Ready) {
+            activeModelId.value = selectedModel.id
+        }
         getSelectedModel()
     }
 
-    override suspend fun markModelFailed(modelId: String, reason: String) {
-        setStatus(modelId, ModelStatus.Failed(reason))
-        if (activeModelId.value == modelId) {
-            activeModelId.value = null
+    override suspend fun updateModelStatus(modelId: String, status: ModelStatus) {
+        setStatus(modelId, status)
+        when (status) {
+            ModelStatus.Ready -> activeModelId.value = modelId
+            ModelStatus.NotLoaded,
+            is ModelStatus.Loading,
+            is ModelStatus.Initializing,
+            is ModelStatus.Failed -> if (activeModelId.value == modelId) {
+                activeModelId.value = null
+            }
         }
     }
 
+    override suspend fun markModelFailed(modelId: String, reason: String) {
+        updateModelStatus(modelId, ModelStatus.Failed(reason))
+    }
+
     override suspend fun resetModel(modelId: String) {
-        setStatus(modelId, ModelStatus.NotLoaded)
-        if (activeModelId.value == modelId) {
-            activeModelId.value = null
-        }
+        updateModelStatus(modelId, ModelStatus.NotLoaded)
     }
 
     private fun setStatus(modelId: String, status: ModelStatus) {
         statusOverrides.update { current ->
             current + (modelId to status)
+        }
+    }
+
+    private suspend fun ensureCompatible(selectedModel: ModelOption) {
+        if (selectedModel.compatibility is ModelCompatibility.Incompatible) {
+            val reason = selectedModel.compatibility.reason
+            markModelFailed(selectedModel.id, reason)
+            error(reason)
         }
     }
 
@@ -133,8 +133,8 @@ class ModelManagerImpl(
     ): String {
         val model = selectedModel ?: return "Select a local model to start chatting."
 
-        if (selectedModel?.compatibility is ModelCompatibility.Incompatible) {
-            return (selectedModel.compatibility as ModelCompatibility.Incompatible).reason
+        if (selectedModel.compatibility is ModelCompatibility.Incompatible) {
+            return selectedModel.compatibility.reason
         }
 
         return when (selectedStatus) {

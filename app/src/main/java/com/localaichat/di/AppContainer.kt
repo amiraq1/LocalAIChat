@@ -7,10 +7,10 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
 import com.localaichat.data.local.LocalAiChatDatabase
 import com.localaichat.data.repository.ChatRepositoryImpl
+import com.localaichat.data.repository.BackendAwareLocalModelLoadingWorkflow
 import com.localaichat.data.repository.LocalModelRegistryImpl
 import com.localaichat.data.repository.ModelManagerImpl
 import com.localaichat.data.repository.PlaceholderLocalModelInstallationWorkflow
-import com.localaichat.data.repository.PlaceholderLocalModelLoadingWorkflow
 import com.localaichat.data.repository.ModelRepositoryImpl
 import com.localaichat.data.repository.SettingsRepositoryImpl
 import com.localaichat.data.backend.mediapipe.MediaPipeInferenceAdapter
@@ -66,7 +66,12 @@ class AppContainer(
     val backendManager: BackendManager = BackendManagerImpl(settingsRepository)
 
     val localModelInstallationWorkflow: LocalModelInstallationWorkflow = PlaceholderLocalModelInstallationWorkflow()
-    val localModelLoadingWorkflow: LocalModelLoadingWorkflow = PlaceholderLocalModelLoadingWorkflow()
+    private val mediaPipeInferenceAdapter = MediaPipeInferenceAdapter(androidBackendContext)
+    val localModelLoadingWorkflow: LocalModelLoadingWorkflow = BackendAwareLocalModelLoadingWorkflow(
+        settingsRepository = settingsRepository,
+        backendManager = backendManager,
+        mediaPipeAdapter = mediaPipeInferenceAdapter,
+    )
     val localModelRegistry: LocalModelRegistry = LocalModelRegistryImpl(
         modelManager = modelManager,
         installationWorkflow = localModelInstallationWorkflow,
@@ -81,7 +86,7 @@ class AppContainer(
     )
 
     private val mediaPipeLlmEngine: LlmEngine = AdapterLlmEngine(
-        adapter = MediaPipeInferenceAdapter(androidBackendContext)
+        adapter = mediaPipeInferenceAdapter
     )
 
     val llmEngine: LlmEngine = DynamicLlmEngine(

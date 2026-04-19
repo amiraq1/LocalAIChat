@@ -8,8 +8,9 @@ import com.localaichat.domain.model.ModelOption
 import com.localaichat.domain.model.RenderedPrompt
 import com.localaichat.domain.repository.InferenceAdapter
 import com.localaichat.domain.repository.LlmEngine
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.transform
 import java.util.UUID
 
 /**
@@ -37,11 +38,14 @@ class AdapterLlmEngine(
             )
         )
 
-        return adapter.streamInference(request).mapNotNull { event ->
+        return adapter.streamInference(request).transform { event ->
             when (event) {
-                is InferenceEvent.Token -> event.text
-                is InferenceEvent.Failed -> "[Error: ${event.userMessage}]"
-                else -> null
+                is InferenceEvent.Token -> emit(event.text)
+                is InferenceEvent.Failed -> throw IllegalStateException(event.userMessage, event.cause)
+                is InferenceEvent.Cancelled -> {
+                    throw CancellationException("Inference cancelled for request ${event.requestId}.")
+                }
+                else -> Unit
             }
         }
     }

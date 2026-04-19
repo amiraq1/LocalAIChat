@@ -8,6 +8,7 @@ import com.localaichat.domain.model.RenderedPrompt
 import com.localaichat.domain.repository.BackendManager
 import com.localaichat.domain.repository.LlmEngine
 import com.localaichat.domain.repository.SettingsRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
@@ -25,6 +26,7 @@ class DynamicLlmEngine(
     private val llamaCppEngine: LlmEngine,
 ) : LlmEngine {
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     override fun streamReply(
         renderedPrompt: RenderedPrompt,
         config: GenerationConfig,
@@ -36,8 +38,8 @@ class DynamicLlmEngine(
         ) { selectedType, availableBackends ->
             val option = availableBackends.find { it.type == selectedType }
             val status = option?.status ?: BackendStatus.Unavailable("Unknown backend type.")
-            selectedType to status
-        }.flatMapLatest { (type, status) ->
+            Triple(selectedType, status, option?.displayName ?: selectedType.name)
+        }.flatMapLatest { (type, status, displayName) ->
             when (status) {
                 is BackendStatus.Available -> {
                     val engine = when (type) {
@@ -50,10 +52,7 @@ class DynamicLlmEngine(
                 }
 
                 is BackendStatus.Unavailable -> flow {
-                    emit("[Backend Fallback: ${type.name} is unavailable. Reason: ${status.reason}]\n\n")
-                    fakeEngine.streamReply(renderedPrompt, config, model).collect {
-                        emit(it)
-                    }
+                    throw IllegalStateException("$displayName is unavailable: ${status.reason}")
                 }
             }
         }
